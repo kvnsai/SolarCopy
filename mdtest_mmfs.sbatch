@@ -41,7 +41,7 @@ scontrol show hostnames "${SLURM_JOB_NODELIST}" > "${HOSTFILE}"
 
 # ===== INFO =====
 echo "=============================="
-echo " MDTest over Lustre (GPFS)"
+echo " MDTest over GPFS"
 echo "=============================="
 echo "Job ID       : ${SLURM_JOB_ID}"
 echo "Node list    : ${SLURM_JOB_NODELIST}"
