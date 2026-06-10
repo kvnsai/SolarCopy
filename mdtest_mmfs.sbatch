@@ -2,7 +2,7 @@
 #SBATCH --partition=defq
 #SBATCH --job-name=mdtest_mmfs
 #SBATCH --nodes=24
-#SBATCH --nodelist=ch3lahpccn[001-032]
+#SBATCH --nodelist=ch3lahpccn[008-031]
 #SBATCH --ntasks-per-node=1
 #SBATCH --exclusive
 #SBATCH --output=results/mdtest_%j.out
@@ -21,21 +21,20 @@ export OMPI_MCA_btl_openib_allow_ib=1
 # ===== PATHS =====
 MMFS_MNT="/mmfs1"
 TEST_DIR="${MMFS_MNT}/mdtest_${SLURM_JOB_ID}"
-MDTEST_BIN="${MDTEST_BIN:-$(pwd)/bin/mdtest}"   # absolute path for mpirun
+MDTEST_BIN="${MDTEST_BIN:-$(pwd)/bin/mdtest}"
 
 # ===== TEST SETTINGS =====
-ITEMS=10000      # files per rank
-DEPTH=2          # tree depth
-BRANCHING=2      # branching factor
+ITEMS=10000
+DEPTH=2
+BRANCHING=2
 
 # ===== SETUP =====
 mkdir -p "${TEST_DIR}" results
 
 if command -v lfs >/dev/null 2>&1; then
-    lfs setstripe -c 1 "${TEST_DIR}"    # mdtest creates many small files; stripe=1 is faster
+    lfs setstripe -c 1 "${TEST_DIR}"
 fi
 
-# Build hostfile from SLURM allocation
 HOSTFILE="${SLURM_SUBMIT_DIR}/hostfile_${SLURM_JOB_ID}"
 scontrol show hostnames "${SLURM_JOB_NODELIST}" > "${HOSTFILE}"
 
@@ -55,9 +54,9 @@ echo "=============================="
 echo
 
 if command -v lfs >/dev/null 2>&1; then
-    echo "--- Lustre info ---"
+    echo "--- GPFS info ---"
     lfs df -h "${MMFS_MNT}" || true
-    lfs getstripe "${TEST_DIR}"  || true
+    lfs getstripe "${TEST_DIR}" || true
     echo
 fi
 
@@ -71,16 +70,17 @@ mpirun \
     --bind-to none \
     "${MDTEST_BIN}" \
         -d "${TEST_DIR}" \
-        -i 3 \              # 3 iterations for stable averages (was 1)
+        -i 3 \
         -n "${ITEMS}" \
-        -u \                # unique dir per task
+        -u \
         -z "${DEPTH}" \
         -b "${BRANCHING}" \
-        -L \                # files only at leaves
-        -F \                # files only (no dirs in operations)
-        -C \                # create
-        -T \                # stat
-        -r                  # remove
+        -l \
+        -F
+
+# NOTE: -C -T -r are omitted as standalone flags;
+# mdtest runs create/stat/remove by default when none of -C/-T/-E/-r are given.
+# Add them back one at a time if you want phase-specific runs.
 
 echo
 echo "=============================="
